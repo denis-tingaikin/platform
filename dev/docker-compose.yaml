@@ -1,4 +1,15 @@
 services:
+  stream: 
+    image: 'hardcoreeng/huly-stream:latest'
+    container_name: stream
+    environment:
+      - STREAM_ENDPOINT_URL=s3://host.docker.internal:9000
+      - STREAM_INSECURE=true
+      - AWS_ACCESS_KEY_ID=minioadmin
+      - AWS_SECRET_ACCESS_KEY=minioadmin
+    ports:
+      - 1080:1080
+    restart: unless-stopped
   mongodb:
     image: 'mongo:7-jammy'
     container_name: mongodb

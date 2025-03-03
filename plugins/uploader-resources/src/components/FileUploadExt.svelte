@@ -15,12 +15,13 @@
 <script lang="ts">
   import FileUploadStatusBar from './FileUploadStatusBar.svelte'
   import { uploads } from '../store'
+
 </script>
 
-{#if $uploads.length > 0}
+{#if $uploads.size > 0}
   <div class="flex-row-center flex-gap-2">
-    {#each $uploads as upload}
-      <FileUploadStatusBar {upload} />
+    {#each $uploads as [, v]}
+      <FileUploadStatusBar upload={v} />
     {/each}
   </div>
 {/if}

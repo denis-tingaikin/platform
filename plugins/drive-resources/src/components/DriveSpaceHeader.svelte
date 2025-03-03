@@ -1,5 +1,5 @@
 <!--
-// Copyright © 2024 Hardcore Engineering Inc.
+// Copyright © 2024-2025 Hardcore Engineering Inc.
 //
 // Licensed under the Eclipse Public License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License. You may
@@ -17,10 +17,11 @@
   import { type Drive } from '@hcengineering/drive'
   import { createQuery } from '@hcengineering/presentation'
   import { Button, ButtonWithDropdown, IconAdd, IconDropdown, Loading, SelectPopupValueType } from '@hcengineering/ui'
-
+  import { FileUploadOptions, getUploadMethods, UploadMethodHandler } from '@hcengineering/uploader'
   import drive from '../plugin'
-  import { getFolderIdFromFragment } from '../navigation'
-  import { showCreateDrivePopup, showCreateFolderPopup, uploadFilesToDrivePopup } from '../utils'
+  import { getFolderIdFromFragment, findFolderIdFromFragment } from '../navigation'
+  import { showCreateDrivePopup, showCreateFolderPopup, uploadFilesToDrivePopup, getUploadOptions } from '../utils'
+  import { getResource } from '@hcengineering/platform'
 
   export let currentSpace: Ref<Drive> | undefined
   export let currentFragment: string | undefined
@@ -29,6 +30,7 @@
   const socialStrings = myAcc.socialIds
 
   const query = createQuery()
+  const actionWithExtensionMap = new Map<string, UploadMethodHandler>()
 
   let loading = true
   let hasDrive = false
@@ -37,7 +39,6 @@
     { archived: false, members: { $in: socialStrings } },
     (res) => {
       hasDrive = res.length > 0
-      loading = false
     },
     { limit: 1, projection: { _id: 1 } }
   )
@@ -51,6 +52,15 @@
       await handleCreateFolder()
     } else if (res === drive.string.UploadFile) {
       await handleUploadFile()
+    } else if (typeof res === 'string' && currentSpace !== undefined) {
+      const findRes = await findFolderIdFromFragment(currentFragment ?? '')
+      console.log('findRes', findRes)
+      const opts = await getUploadOptions(findRes.space as Ref<Drive> ?? currentSpace, findRes.folder ?? drive.ids.Root)
+      const uploadFn = actionWithExtensionMap.get(res)
+      if (uploadFn === undefined) {
+        return
+      }
+      await uploadFn(opts)
     }
   }
 
@@ -68,7 +78,7 @@
     }
   }
 
-  const dropdownItems = hasAccountRole(myAcc, AccountRole.User)
+  const dropdownItems: SelectPopupValueType[] = hasAccountRole(myAcc, AccountRole.User)
     ? [
         { id: drive.string.CreateDrive, label: drive.string.CreateDrive, icon: drive.icon.Drive },
         { id: drive.string.CreateFolder, label: drive.string.CreateFolder, icon: drive.icon.Folder },
@@ -78,6 +88,22 @@
         { id: drive.string.CreateFolder, label: drive.string.CreateFolder, icon: drive.icon.Folder },
         { id: drive.string.UploadFile, label: drive.string.UploadFile, icon: drive.icon.File }
       ]
+
+  void getUploadMethods().then(async extensions => {
+    if (currentSpace === undefined) {
+      return
+    }
+    for (const extension of extensions) {
+      dropdownItems.push({ id: extension._id, text: extension.label, icon: drive.icon.File })
+      const uploadMethodHandler = async (opts: FileUploadOptions): Promise<void> => {
+        const fn = await getResource(extension.handler)
+        await fn(opts)
+      }
+      actionWithExtensionMap.set(extension._id, uploadMethodHandler)
+    }
+  })
+  loading = false
+
 </script>
 
 {#if loading}

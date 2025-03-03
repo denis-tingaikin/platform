@@ -19,7 +19,8 @@ import uploader, { uploaderId } from '@hcengineering/uploader'
 
 export default mergeIds(uploaderId, uploader, {
   component: {
-    FileUploadExt: '' as AnyComponent
+    FileUploadExt: '' as AnyComponent,
+    RecordingStatus: '' as AnyComponent
   },
   string: {
     UploadingTo: '' as IntlString

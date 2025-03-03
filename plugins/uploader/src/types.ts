@@ -1,5 +1,5 @@
 //
-// Copyright © 2024 Hardcore Engineering Inc.
+// Copyright © 2024-2025 Hardcore Engineering Inc.
 //
 // Licensed under the Eclipse Public License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License. You may
@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 //
-
+import type { Asset, Resource } from '@hcengineering/platform'
 import type { Blob as PlatformBlob, Class, Doc, Ref } from '@hcengineering/core'
 
 /** @public */
@@ -27,9 +27,28 @@ export type UploadFilesPopupFn = (options: FileUploadOptions, popupOptions: File
 export type UploadFilesFn = (files: File[] | FileList, options: FileUploadOptions) => Promise<void>
 
 /** @public */
+export type UploadMethodHandler = (options: FileUploadOptions) => Promise<void>
+
+/** @public */
+export type GetUploadMethods = () => Promise<UploadMethodExtension[]>
+
+/** @public */
 export interface FileUploadTarget {
   objectId: Ref<Doc>
   objectClass: Ref<Class<Doc>>
+}
+
+/*
+* Upload methods extension points.
+*/
+export type UploadMethodExtensionId = string & { __uploadExtensionId: true }
+
+export interface UploadMethodExtension extends Doc {
+  icon?: Asset
+  label?: string
+  description?: string
+  handler: Resource<UploadMethodHandler>
+  extension: UploadMethodExtensionId
 }
 
 /** @public */
@@ -60,6 +79,7 @@ export interface FileUploadCallbackParams {
   file: FileWithPath | Blob
   path: string | undefined
   metadata: Record<string, any> | undefined
+  navigateOnUpload?: boolean
 }
 
 /** @public */

@@ -16,13 +16,16 @@
 import type { IntlString, Plugin, Resource } from '@hcengineering/platform'
 import { plugin } from '@hcengineering/platform'
 import type { AnyComponent } from '@hcengineering/ui/src/types'
-
-import type { UploadFilesFn, UploadFilesPopupFn } from './types'
+import type { Class, Ref } from '@hcengineering/core'
+import type { GetUploadMethods, UploadFilesFn, UploadFilesPopupFn, UploadMethodExtension, UploadMethodExtensionId, UploadMethodHandler } from './types'
 
 /** @public */
 export const uploaderId = 'uploader' as Plugin
 
 export const uploaderPlugin = plugin(uploaderId, {
+  class: {
+    UploadMethodExtension: '' as Ref<Class<UploadMethodExtension>>
+  },
   component: {
     FileUploadPopup: '' as AnyComponent
   },
@@ -38,7 +41,12 @@ export const uploaderPlugin = plugin(uploaderId, {
   },
   function: {
     ShowFilesUploadPopup: '' as Resource<UploadFilesPopupFn>,
-    UploadFiles: '' as Resource<UploadFilesFn>
+    UploadFiles: '' as Resource<UploadFilesFn>,
+    DefaultUploadMethod: '' as Resource<UploadMethodHandler>,
+    GetUploadMethods: '' as Resource<GetUploadMethods>
+  },
+  extension: {
+    UploadExtensionId: '' as UploadMethodExtensionId
   }
 })
 

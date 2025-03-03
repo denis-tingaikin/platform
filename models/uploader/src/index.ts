@@ -1,5 +1,5 @@
 //
-// Copyright © 2024 Hardcore Engineering Inc.
+// Copyright © 2024-2025 Hardcore Engineering Inc.
 //
 // Licensed under the Eclipse Public License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License. You may
@@ -18,14 +18,21 @@ import core from '@hcengineering/model-core'
 import presentation from '@hcengineering/model-presentation'
 import workbench from '@hcengineering/model-workbench'
 
+import { TUploadMethodHandler } from './models'
 import uploader from './plugin'
 
 export { uploaderId } from '@hcengineering/uploader'
 export { uploader as default }
 
 export function createModel (builder: Builder): void {
+  builder.createModel(TUploadMethodHandler)
   builder.createDoc(presentation.class.ComponentPointExtension, core.space.Model, {
     extension: workbench.extensions.WorkbenchExtensions,
     component: uploader.component.WorkbenchExtension
+  })
+  builder.createDoc(uploader.class.UploadMethodExtension, core.space.Model, {
+    extension: uploader.extension.UploadExtensionId,
+    handler: uploader.function.DefaultUploadMethod,
+    label: 'Upload File'
   })
 }
