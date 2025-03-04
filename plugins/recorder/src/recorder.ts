@@ -35,6 +35,10 @@ export class Recorder {
     this.mediaRecorder.start(readIntervalMs)
   }
 
+  public resume (): void {
+    this.mediaRecorder.resume()
+  }
+
   public asStream (): ChunkReader {
     return this.chunkStream
   }

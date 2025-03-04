@@ -16,7 +16,7 @@ export class ScreenRecorder {
     const combinedStream = new MediaStream()
     const displayStream = await navigator.mediaDevices.getDisplayMedia({ video: { frameRate: opts.fps ?? 30 }, audio: true })
     const microphoneStream = await navigator.mediaDevices.getUserMedia({ audio: true })
-    displayStream.getVideoTracks().forEach(track => { combinedStream.addTrack(track); width = track.getSettings().width ?? width; height = track.getSettings().height ?? height })
+    displayStream.getVideoTracks().forEach(track => { combinedStream.addTrack(track); width = Math.max(track.getSettings().width ?? width, width); height = Math.max(track.getSettings().height ?? height, height) })
     displayStream.getAudioTracks().forEach(track => { combinedStream.addTrack(track) })
     microphoneStream.getAudioTracks().forEach(track => { combinedStream.addTrack(track) })
     const recorder = new Recorder(combinedStream)
@@ -33,6 +33,10 @@ export class ScreenRecorder {
 
   public pause (): void {
     this.recorder.pause()
+  }
+
+  public resume (): void {
+    this.recorder.resume()
   }
 
   public async stop (): Promise<void> {

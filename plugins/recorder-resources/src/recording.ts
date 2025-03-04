@@ -50,7 +50,7 @@ async function uploadRecording (recordingId: string, onUploaded: FileUploadCallb
   } catch {
     uploadUrl = 'http://127.0.0.1:9000/' + (getMetadata(presentation.metadata.WorkspaceId) ?? '')
   }
-  const blobRef = uploadUrl + '/' + recordingId + '_master.m3u8' as Ref<Blob>
+  const blobRef = uploadUrl + '/' + recordingId as Ref<Blob>
   await onUploaded({
     uuid: blobRef,
     name: 'Recording-' + now(),

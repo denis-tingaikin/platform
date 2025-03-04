@@ -1,7 +1,7 @@
 <!--
 // Copyright © 2025 Hardcore Engineering Inc.
 //
-// Licensed under the Eclipse Public License, Version 2.0 (the "License");
+// Licensed under the Eclipse Public License, Version 2.0 (the "License")
 // you may not use this file except in compliance with the License. You may
 // obtain a copy of the License at https://www.eclipse.org/legal/epl-2.0
 //
@@ -14,149 +14,160 @@
 -->
 
 <script lang="ts">
-  import { writable } from 'svelte/store';
-  import Record from './icons/Record.svelte';
-  import Play from './icons/Play.svelte';
-  import Stop from './icons/Stop.svelte';
-  import Trash from './icons/Trash.svelte';
-  import Pause from './icons/Pause.svelte';
-  import Expand from './icons/Expand.svelte';
-  import Collapse from './icons/Collapse.svelte';
+  import { writable } from 'svelte/store'
+  import Record from './icons/Record.svelte'
+  import Play from './icons/Play.svelte'
+  import Stop from './icons/Stop.svelte'
+  import Trash from './icons/Trash.svelte'
+  import Pause from './icons/Pause.svelte'
+  import Expand from './icons/Expand.svelte'
+  import Collapse from './icons/Collapse.svelte'
   import { ScreenRecorder } from '@hcengineering/recorder'
-  import { createEventDispatcher, onMount } from 'svelte';
+  import { createEventDispatcher } from 'svelte'
   import { showPopup } from '@hcengineering/ui'
   import Countdown from './Countdown.svelte'
   import { getMetadata } from '@hcengineering/platform'
   import presentation from '@hcengineering/presentation'
   import plugin from '../plugin'
 
-  let state = writable<"idle" | "recording" | "paused" | "playing">("idle")
+  let state = writable<"recording" | "paused" | "playing" | "idle" >("idle")
   let expanded = writable(true)
-  let started = false
-  let time = writable("0:00")
+  let time = writable('0:00')
   let timer: NodeJS.Timeout | null = null
   let recorder: ScreenRecorder | null = null
-  let seconds = 0;
-  let res: String = 'zalupa'
+  let seconds = 0
+  let recordingId: string | null = null
 
   const distpacher = createEventDispatcher()
 
   function formatTime(s: number): string {
-    const mins = Math.floor(s / 60);
-    const secs = s % 60;
-    return `${mins}:${secs < 10 ? '0' : ''}${secs}`;
+    const mins = Math.floor(s / 60)
+    const secs = s % 60
+    return `${mins}:${secs < 10 ? '0' : ''}${secs}`
   }
 
-  onMount(async ()=>{
-    recorder = await ScreenRecorder.fromNavigatorMediaDevices({
-      endpoint:'http://127.0.0.1:1080/recording',
-      token: getMetadata(presentation.metadata.Token) ?? '',
-      workspace: getMetadata(presentation.metadata.WorkspaceId) ?? '',
-      metadata: { resolution: window.screen.width + ':' + window.screen.height },
-      onFinish: async (x)=>{ res=x },
-      fps: 30
+  async function createScreenRecorder(): Promise<void> {
+    try {
+      recorder = await ScreenRecorder.fromNavigatorMediaDevices({
+        endpoint: getMetadata(plugin.metadata.StreamUrl) ?? '',
+        token: getMetadata(presentation.metadata.Token) ?? '',
+        workspace: getMetadata(presentation.metadata.WorkspaceId) ?? '',
+        onFinish: async (x) => { recordingId = x + "_master.m3u8" },
+        fps: 30
+      })
+    } catch (err) {
+      console.log(err)
+      distpacher('close', true)
+    }
+  }
+
+  async function showCountdown(): Promise<void> {
+    const showPopupPromise = new Promise<void>((resolve) => {
+      showPopup(Countdown, {}, undefined, async () => {
+        resolve()
+      }, undefined, {
+        category: 'countdown',
+        overlay: true,
+        fixed: true
+      })
     })
-  })
+    await showPopupPromise
+  }
 
-  async function startTimer() {
-    showPopup(Countdown, {}, undefined, async () => {
-      if (started) {
-        return
-      }
-      started = true
+async function startRecording(): Promise<void> {
+    if ($state === 'recording') {
+      return
+    }
+    if ($state === 'idle') {
+      await createScreenRecorder()
+      await showCountdown()
       recorder?.start()
-      if (timer) clearInterval(timer);
-      timer = setInterval(() => {
-        seconds++;
-        time.set(formatTime(seconds));
-      }, 1000);
-    }, undefined, {
-    category: 'countdown',
-    overlay: true,
-    fixed: true
-  })
-}
-
-  function startRecording() {
-    state.set("recording");
-    seconds = 0;
-    time.set("0:00");
-    startTimer();
+    } else {
+      recorder?.resume()
+    }
+    timer = setInterval(() => {
+      seconds++
+      time.set(formatTime(seconds))
+    }, 1000)
+    $state = 'recording'
+    console.log($state)
   }
 
-  function pauseRecording() {
-    state.set("paused");
-    if (timer) clearInterval(timer);
+  function pauseRecording(): void {
+    state.set("paused")
+    clearInterval(timer)
+    recorder?.pause()
   }
 
-  function resumeRecording() {
-    state.set("recording");
-    startTimer();
-  }
-
-  async function stopRecording() {
-    state.set("playing");
-    if (timer) clearInterval(timer);
+  async function stopRecording(): Promise<void> {
+    state.set("paused")
+    clearInterval(timer)
     await recorder?.stop()
-    distpacher('close', res)
+    distpacher('close', recordingId)
   }
 
-  function cancelRecording() {
+  async function cancelRecording(): Promise<void> {
+    await recorder?.cancel()
     distpacher('close', true)
   }
 
-  function deleteRecording() {
-    state.set("idle");
-    if (timer) clearInterval(timer);
-    time.set("0:00");
-    started = false
+  async function deleteRecording(): Promise<void> {
+    state.set("idle")
+    await recorder?.cancel()
+    clearInterval(timer)
+    time.set("0:00")
+    seconds=0
   }
 
-  function toggleExpand() {
-    expanded.update(e => !e);
+  function toggleExpand(): void {
+    expanded.update(e => !e)
   }
 </script>
 
-{#if $state === "idle"}
-  <div class="recording">
-    <span class="btn play" on:click={startRecording}>
-      <Record size='small'/> Record
+{#if $state === 'idle'}
+  <!-- svelte-ignore a11y-click-events-have-key-events -->
+  <!-- svelte-ignore a11y-no-static-element-interactions -->
+  <div class="control-panel">
+    <span class="control-button play" on:click={startRecording}>
+      <Record size='medium'/> Record
     </span>
-    <span class="btn" on:click={cancelRecording}>
+    <span class="control-button" on:click={cancelRecording}>
       Cancel
     </span>
   </div>
-{/if}
-
-{#if $state === "recording" || $state === "paused"}
-  <div class="recording {(!$expanded) ? 'collapsed' : ''}">
+{:else}
+  <!-- svelte-ignore a11y-click-events-have-key-events -->
+  <!-- svelte-ignore a11y-no-static-element-interactions -->
+  <div class="control-panel {(!$expanded) ? 'collapsed' : ''}">
     {#if $expanded}
-      <span class="btn red stop-btn" on:click={stopRecording}>
-        <Stop size='medium' />
+      <span class="control-button {$state === 'recording' ? 'stop' : ''}" on:click={stopRecording}>
+        <Stop size='small' />
       </span>
 
       {#if $state === "recording"}
-        <span class="btn" on:click={pauseRecording}>
+        <span class="control-button" on:click={pauseRecording}>
           <Pause size='medium' />
         </span>
       {:else}
-        <span class="btn play" on:click={resumeRecording}>
-          <Play size='medium' />
-        </span>
+      <span class="control-button play" on:click={startRecording}>
+        <Play size='small' />
+      </span>
       {/if}
+    {/if}
 
-      <span class="btn" on:click={deleteRecording}>
+    <span class="timer">{$time}</span>
+    {#if $expanded}
+      <span class="control-button" on:click={deleteRecording}>
         <Trash size='medium' />
       </span>
     {/if}
 
-    <span class="timer">{$time}</span>
-
-    <span class="btn expand-toggle" on:click={toggleExpand}>
+    <span class="control-button expand-toggle" on:click={toggleExpand}>
       {#if $expanded} <Collapse size='small' /> {:else} <Expand size='small' /> {/if}
     </span>
   </div>
 {/if}
+
 
 <style lang="scss">
   .record-container {
@@ -164,9 +175,10 @@
     gap: 0.5rem;
   }
 
-  .btn {
+  .control-button {
     padding: 0.5rem 0.5rem;
-    border-radius: 0.5rem;
+    border-left: 0.5px solid var(--button-border-color);
+    color: var(--theme-text-primary-color);
     cursor: pointer;
     justify-content: center;
     display: flex;
@@ -174,8 +186,8 @@
     align-items: center;
   }
 
-  .recording {
-    min-height: 2.7rem;
+  .control-panel {
+    min-height: 2.8rem;
     display: flex;
     align-items: center;
     gap: 0.5rem;
@@ -185,10 +197,11 @@
     transition: max-width 0.4s ease-in-out, padding 0.3s ease-in-out;
     overflow: hidden;
     border: 0.5px solid var(--button-border-color);
+    transition: opacity 0.3s ease, transform 0.3s ease;
   }
 
   .collapsed {
-    max-width: 110px;
+    max-width: 7.5rem;
   }
 
   .control {
@@ -198,7 +211,6 @@
     display: flex;
     gap: 0.5rem;
     padding: 5px;
-    transition: opacity 0.3s ease, transform 0.3s ease;
   }
 
   .expand-toggle {
@@ -206,13 +218,16 @@
     padding-left: 0.5rem;
   }
 
-  .red {
-    color: red;
+  .stop {
+    border-radius: 0.5rem;
+    background-color: red;
+    color: #ffffffff;
   }
 
   .play {
+    border-radius: 0.5rem;
     background-color: var(--primary-button-default);
-    color: white;
+    color: #ffffffff;
   }
 
   .timer {
@@ -226,3 +241,4 @@
     pointer-events: none;
   }
 </style>
+

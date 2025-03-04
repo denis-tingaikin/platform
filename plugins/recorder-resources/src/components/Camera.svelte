@@ -21,16 +21,16 @@
   let showButtons = false
   let showCamera = false
 
-  let videoElement
-  let stream
+  let videoElement: HTMLVideoElement
+  let stream: MediaStream | null = null
 
   const stopCamera = () => {
-    if (stream === undefined) {
+    if (stream === null) {
       return
     }
     stream.getTracks().forEach(track => track.stop())
     videoElement.srcObject = null
-    stream = undefined
+    stream = null
     showCamera = false
   }
 
@@ -50,6 +50,8 @@
   })
 </script>
 
+<!-- svelte-ignore a11y-no-static-element-interactions -->
+<!-- svelte-ignore a11y-click-events-have-key-events -->
 <div class="movable"
   on:mouseenter={() => showButtons = true} 
   on:mouseleave={() => showButtons = false}>
@@ -57,13 +59,13 @@
     <video class="video video-container" bind:this={videoElement} autoplay muted playsinline>
     </video>
     {#if showButtons}
-      <div class="camera-btn" on:click={()=>{ stopCamera() }}>
+      <div class="camera-control" on:click={()=>{ stopCamera() }}>
         <Close size="full"/>
       </div>
     {/if}
   {:else}
     <div class="control">
-      <span class="btn" on:click={ ()=>{ startCamera() }}>
+      <span class="control-button" on:click={ ()=>{ startCamera() }}>
         <Camera size='small'/>
       </span>
     </div>
@@ -75,24 +77,27 @@
   .video-container {
     width: 350px;
     height: 350px;
+    transform: rotateY(180deg);
   }
   .video {
     border-radius: 50%;
     object-fit: cover;
   }
   .control {
-    min-height: 2.7rem;
+    min-height: 2.8rem;
+    min-width: 2.8rem;
     display: flex;
+    flex-direction: row;
     align-items: center;
     gap: 0.5rem;
     background: var(--theme-recorder-panel-bg);
-    padding: 0.25rem;
+    padding-left: 0.35rem;
     border-radius: 0.5rem;
     transition: max-width 0.4s ease-in-out, padding 0.3s ease-in-out;
     overflow: hidden;
     border: 0.5px solid var(--button-border-color);
   }
-  .camera-btn {
+  .camera-control{
     position: absolute;
     transform: translateY(-350px);
     padding: 0.5rem 0.5rem;
@@ -100,10 +105,9 @@
     justify-content: center;
     cursor: pointer;
     display: flex;
-    flex-direction: row;
     align-items: center;
   }
-  .btn {
+  .control-button {
     padding: 0.5rem 0.5rem;
     border-radius: 0.5rem;
     justify-content: center;

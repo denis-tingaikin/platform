@@ -39,7 +39,7 @@
     }
     50% {
       background-position: 100% 50%;
-      transform: scale(1.01);
+      transform: scale(1.05);
     }
     100% {
       background-position: 0% 50%;
@@ -73,11 +73,11 @@
   }
   .countdown-animation {
     position: absolute;
-    width: 14.5em;
-    height: 14.5rem;
+    width: 17.5em;
+    height: 17.5rem;
     border-radius: 50%;
-    background: linear-gradient(-45deg, var(--primary-color-orange-02), var(--primary-color-orange-02), var(--primary-color-orange-02), var(--primary-color-blue));  
-    filter: blur(0.5rem);
+    background: linear-gradient(-45deg,rgba(255, 140, 0, 0.6) 70%, rgba(48, 136, 194, 0.7) 30%);  
+    filter: blur(1.5rem);
     animation: gradient 1s infinite ease;
     z-index: 1;
   }
