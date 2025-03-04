@@ -18,7 +18,6 @@ export class ChunkReader {
   }
 
   public push (blob: Blob): void {
-    console.log('pushed')
     this.chunks.push(blob)
     console.log(this.awaitingResolve)
     if (this.awaitingResolve !== null) {

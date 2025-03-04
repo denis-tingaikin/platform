@@ -43,10 +43,8 @@ describe('ChunkReader', () => {
   })
 
   test('Close resolves pending read with done', async () => {
-    // Start reading before closing
     const readPromise = chunkReader.read()
 
-    // Close the reader after a delay
     setTimeout(() => {
       chunkReader.close()
     }, 10)
@@ -58,10 +56,8 @@ describe('ChunkReader', () => {
   test('Push resolves pending read with the chunk', async () => {
     const blob = new Blob(['chunk'])
 
-    // Start reading before pushing a chunk
     const readPromise = chunkReader.read()
 
-    // Push a chunk after a delay
     setTimeout(() => {
       chunkReader.push(blob)
     }, 10)
